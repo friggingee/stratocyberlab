@@ -60,6 +60,30 @@
         terminal.onData(data => {
             socket.emit('ssh_input', data);
         });
+
+        // Handle Ctrl+W for deleting to the last word boundary
+        terminal.attachCustomKeyEventHandler((event) => {
+            if (event.ctrlKey && event.key === 'w') {
+                event.preventDefault();
+
+                const cursorX = terminal.buffer.active.cursorX;
+                const cursorY = terminal.buffer.active.cursorY;
+                const line = terminal.buffer.active.getLine(cursorY).translateToString();
+
+                const beforeCursor = line.slice(0, cursorX);
+                const afterCursor = line.slice(cursorX);
+
+                const lastWordBoundary = beforeCursor.lastIndexOf(" ") + 1;
+                const newBeforeCursor = beforeCursor.slice(0, lastWordBoundary);
+
+                const newLine = newBeforeCursor + afterCursor;
+                terminal.write(`\r${newLine}\x1b[K`);
+                terminal.write(`\x1b[${lastWordBoundary + 1}G`);
+
+                return false;
+            }
+            return true;
+        });
     });
 
 
